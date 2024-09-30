@@ -80,12 +80,11 @@ def process_local_directory(local_path):
     file_count = 0
     start_time = time.time()
 
+    excluded_dirs = {'node_modules', 'output', 'bin', 'obj', '.azuredevops', '.git'}
+
     for root, dirs, files in os.walk(local_path):
+        dirs[:] = [d for d in dirs if d not in excluded_dirs]
         print(f"Entering directory: {root}")  # Debugging statement
-        if 'node_modules' in dirs:
-            dirs.remove('node_modules')
-        if os.path.basename(root) == 'output':
-            continue  # Skip the output directory
         for file in files:
             if is_allowed_filetype(file):
                 file_path = os.path.join(root, file)
