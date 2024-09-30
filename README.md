@@ -1,19 +1,5 @@
-# 1FileLLM: Efficient Data Aggregation for Local Directories
-
 1FileLLM is a command-line tool designed to streamline the creation of information-dense prompts for large language models (LLMs). It aggregates and preprocesses data from local directories, compiling them into a single text file.
-
-## Features
-
-- Support for local directories
-- Handling of multiple file formats
-- Text preprocessing, including compressed and uncompressed outputs, stopword removal, and lowercase conversion
-- Token count reporting for both compressed and uncompressed outputs
-- XML encapsulation of output for improved LLM performance
-
-## Installation
-
-### Prerequisites
-
+## Setup
 Install the required dependencies:
 
 ```bash
@@ -30,37 +16,7 @@ pip install -U -r requirements.txt
 
 ## Usage
 
-Create a directory- 'output' in the workspace.This is in .gitignore, and anything in this directory will not be processed. It will save previous iterations of the compressed files. # 1FileLLM: Efficient Data Aggregation for Local Directories
-
-1FileLLM is a command-line tool designed to streamline the creation of information-dense prompts for large language models (LLMs). It aggregates and preprocesses data from local directories, compiling them into a single text file.
-
-## Features
-
-- Support for local directories
-- Handling of multiple file formats
-- Text preprocessing, including compressed and uncompressed outputs, stopword removal, and lowercase conversion
-- Token count reporting for both compressed and uncompressed outputs
-- XML encapsulation of output for improved LLM performance
-
-## Installation
-
-### Prerequisites
-
-Install the required dependencies:
-
-```bash
-pip install -U -r requirements.txt
-```
-
-Optionally, create a virtual environment for isolation:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -U -r requirements.txt
-```
-
-## Usage
+***Create a directory- 'output' in the workspace.This is in .gitignore, and anything in this directory will not be processed. It will save previous iterations of the compressed files.***
 
 Run the script using the following command:
 
