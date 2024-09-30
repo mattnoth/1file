@@ -6,7 +6,6 @@ import nltk
 from nltk.corpus import stopwords
 from datetime import datetime
 import xml.etree.ElementTree as ET
-from concurrent.futures import ProcessPoolExecutor
 import time
 
 # Ensure the stopwords are downloaded
@@ -24,7 +23,7 @@ def safe_file_read(filepath, fallback_encoding='latin1'):
 def is_allowed_filetype(filename):
     if filename.startswith('.'):
         return False
-    allowed_extensions = ['.py', '.txt', '.js', '.tsx', '.ts', '.md', '.cjs', '.html', '.json', '.ipynb', '.h', '.localhost', '.sh', '.yaml', '.example']
+    allowed_extensions = ['.py', '.txt', '.js', '.tsx', '.ts', '.md', '.cjs', '.html', '.json', '.ipynb', '.h', '.localhost', '.sh', '.yaml', '.example', '.cs']
     return any(filename.endswith(ext) for ext in allowed_extensions)
 
 def escape_xml(text):
@@ -82,6 +81,7 @@ def process_local_directory(local_path):
     start_time = time.time()
 
     for root, dirs, files in os.walk(local_path):
+        print(f"Entering directory: {root}")  # Debugging statement
         if 'node_modules' in dirs:
             dirs.remove('node_modules')
         if os.path.basename(root) == 'output':
@@ -89,19 +89,23 @@ def process_local_directory(local_path):
         for file in files:
             if is_allowed_filetype(file):
                 file_path = os.path.join(root, file)
-                print(f"Processing {file_path}...")
+                print(f"Processing file: {file_path}")  # Debugging statement
 
-                relative_path = os.path.relpath(file_path, local_path)
-                with open(file_path, "r", encoding='utf-8', errors='ignore') as f:
-                    file_content = f.read()
-                
-                file_xml = f'<file name="{escape_xml(relative_path)}">{escape_xml(file_content)}</file>'
-                content.append(file_xml)
-                
-                file_tokens = get_token_count(file_xml)
-                total_tokens += file_tokens
-                file_count += 1
-                
+                try:
+                    relative_path = os.path.relpath(file_path, local_path)
+                    with open(file_path, "r", encoding='utf-8', errors='ignore') as f:
+                        file_content = f.read()
+                    
+                    file_xml = f'<file name="{escape_xml(relative_path)}">{escape_xml(file_content)}</file>'
+                    content.append(file_xml)
+                    
+                    file_tokens = get_token_count(file_xml)
+                    total_tokens += file_tokens
+                    file_count += 1
+
+                except Exception as e:
+                    print(f"Error processing file {file_path}: {e}")
+
                 if file_count % 10 == 0:
                     elapsed_time = time.time() - start_time
                     files_per_second = file_count / elapsed_time
