@@ -65,12 +65,52 @@ def preprocess_text(input_text):
     except ET.ParseError:
         return process_text(input_text)
 
+def process_csharp_file(content):
+    def escape_non_xml(text):
+        text = text.replace("&", "&amp;")
+        text = text.replace("<", "&lt;")
+        text = text.replace(">", "&gt;")
+        return text
+
+    def balance_brackets(text):
+        stack = []
+        start = 0
+        for i, char in enumerate(text):
+            if char == '<':
+                stack.append(i)
+            elif char == '>' and stack:
+                start = stack.pop()
+                if not stack:
+                    yield (start, i + 1)
+
+    xml_comment_pattern = r'(///.*?$|/\*\*(?:(?!\*/).)*?\*/)'
+    
+    parts = re.split(xml_comment_pattern, content, flags=re.MULTILINE | re.DOTALL)
+
+    processed_parts = []
+    for i, part in enumerate(parts):
+        if i % 2 == 0:  # This is a code part
+            last_end = 0
+            for start, end in balance_brackets(part):
+                processed_parts.append(escape_non_xml(part[last_end:start]))
+                processed_parts.append(part[start:end])
+                last_end = end
+            processed_parts.append(escape_non_xml(part[last_end:]))
+        else:  # This is an XML comment part
+            processed_parts.append(part)
+
+    return ''.join(processed_parts)
+
 def process_file(file_path, local_path):
     relative_path = os.path.relpath(file_path, local_path)
-    with open(file_path, "r", encoding='utf-8', errors='ignore') as f:
-        content = f.read()
+    content = safe_file_read(file_path)
     
-    file_content = f'<file name="{escape_xml(relative_path)}">{escape_xml(content)}</file>'
+    if file_path.endswith('.cs'):
+        content = process_csharp_file(content)
+    else:
+        content = escape_xml(content)
+    
+    file_content = f'<file name="{escape_xml(relative_path)}">{content}</file>'
     token_count = get_token_count(file_content)
     return file_content, token_count
 
@@ -84,21 +124,15 @@ def process_local_directory(local_path):
 
     for root, dirs, files in os.walk(local_path):
         dirs[:] = [d for d in dirs if d not in excluded_dirs]
-        print(f"Entering directory: {root}")  # Debugging statement
+        print(f"Entering directory: {root}")
         for file in files:
             if is_allowed_filetype(file):
                 file_path = os.path.join(root, file)
-                print(f"Processing file: {file_path}")  # Debugging statement
+                print(f"Processing file: {file_path}")
 
                 try:
-                    relative_path = os.path.relpath(file_path, local_path)
-                    with open(file_path, "r", encoding='utf-8', errors='ignore') as f:
-                        file_content = f.read()
-                    
-                    file_xml = f'<file name="{escape_xml(relative_path)}">{escape_xml(file_content)}</file>'
+                    file_xml, file_tokens = process_file(file_path, local_path)
                     content.append(file_xml)
-                    
-                    file_tokens = get_token_count(file_xml)
                     total_tokens += file_tokens
                     file_count += 1
 
@@ -141,11 +175,9 @@ def main():
     try:
         final_output, uncompressed_token_count = process_local_directory(input_path)
 
-        # Write the uncompressed output
         with open(output_file, "w", encoding="utf-8") as file:
             file.write(final_output)
 
-        # Process the compressed output
         compressed_output = preprocess_text(final_output)
         with open(processed_file, "w", encoding="utf-8") as file:
             file.write(compressed_output)
