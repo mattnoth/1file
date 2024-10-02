@@ -120,7 +120,7 @@ def process_local_directory(local_path):
     file_count = 0
     start_time = time.time()
 
-    excluded_dirs = {'node_modules', 'output', 'bin', 'obj', '.azuredevops', '.git'}
+    excluded_dirs = {'node_modules', 'output', 'bin', 'obj', '.azuredevops', '.git', '.idea', '.vscode'}
 
     for root, dirs, files in os.walk(local_path):
         dirs[:] = [d for d in dirs if d not in excluded_dirs]
