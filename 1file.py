@@ -23,7 +23,24 @@ def safe_file_read(filepath, fallback_encoding='latin1'):
 def is_allowed_filetype(filename):
     if filename.startswith('.'):
         return False
-    allowed_extensions = ['.py', '.txt', '.js', '.tsx', '.ts', '.md', '.cjs', '.html', '.json', '.ipynb', '.h', '.localhost', '.sh', '.yaml', '.example', '.cs']
+        
+    excluded_files = {
+        'package-lock.json',
+        'package.json',
+        'tsconfig.json',
+        'next-env.d.ts',
+        'next.config.ts',
+        'yarn.lock',
+        'pnpm-lock.yaml'
+    }
+    
+    if filename in excluded_files:
+        return False
+        
+    allowed_extensions = ['.py', '.txt', '.js', '.tsx', '.ts', '.md', 
+                         '.cjs', '.html', '.json', '.ipynb', '.h', 
+                         '.localhost', '.sh', '.yaml', '.example', '.cs']
+    
     return any(filename.endswith(ext) for ext in allowed_extensions)
 
 def escape_xml(text):
@@ -120,7 +137,12 @@ def process_local_directory(local_path):
     file_count = 0
     start_time = time.time()
 
-    excluded_dirs = {'node_modules', 'output', 'bin', 'obj', '.azuredevops', '.git', '.idea', '.vscode'}
+    excluded_dirs = {
+        'node_modules', 'output', 'bin', 'obj', 
+        '.azuredevops', '.git', '.idea', '.vscode', '.next',
+        'dist', 'build', 'coverage', 'out', 
+        'cache', '__pycache__', '.pytest_cache'
+    }
 
     for root, dirs, files in os.walk(local_path):
         dirs[:] = [d for d in dirs if d not in excluded_dirs]
