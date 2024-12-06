@@ -131,6 +131,18 @@ def process_file(file_path, local_path):
     token_count = get_token_count(file_content)
     return file_content, token_count
 
+def process_single_file(file_path):
+    if not is_allowed_filetype(os.path.basename(file_path)):
+        raise ValueError(f"File type not allowed: {file_path}")
+        
+    content = [f'<source type="single_file" path="{escape_xml(file_path)}">']
+    file_xml, token_count = process_file(file_path, os.path.dirname(file_path))
+    content.append(file_xml)
+    content.append('</source>')
+    
+    final_content = '\n'.join(content)
+    return final_content, token_count
+
 def process_local_directory(local_path):
     content = [f'<source type="local_directory" path="{escape_xml(local_path)}">']
     total_tokens = 0
@@ -138,10 +150,10 @@ def process_local_directory(local_path):
     start_time = time.time()
 
     excluded_dirs = {
-        'node_modules', 'output', 'bin', 'obj', 
+        'node_modules', 'output', 'obj',
         '.azuredevops', '.git', '.idea', '.vscode', '.next',
-        'dist', 'build', 'coverage', 'out', 
-        'cache', '__pycache__', '.pytest_cache'
+        'dist', 'build', 'coverage', 'out',
+        'cache', '__pycache__', '.pytest_cache', 'test', 'stacks'
     }
 
     for root, dirs, files in os.walk(local_path):
@@ -158,15 +170,15 @@ def process_local_directory(local_path):
                     total_tokens += file_tokens
                     file_count += 1
 
+                    if file_count % 10 == 0:
+                        elapsed_time = time.time() - start_time
+                        files_per_second = file_count / elapsed_time
+                        remaining_files = len(files) - file_count
+                        estimated_time = remaining_files / files_per_second
+                        print(f"Processed {file_count} files. Estimated time remaining: {estimated_time:.2f} seconds")
+
                 except Exception as e:
                     print(f"Error processing file {file_path}: {e}")
-
-                if file_count % 10 == 0:
-                    elapsed_time = time.time() - start_time
-                    files_per_second = file_count / elapsed_time
-                    remaining_files = len(files) - file_count
-                    estimated_time = remaining_files / files_per_second
-                    print(f"Processed {file_count} files. Estimated time remaining: {estimated_time:.2f} seconds")
 
     content.append('</source>')
     final_content = '\n'.join(content)
@@ -176,26 +188,32 @@ def main():
     if len(sys.argv) > 1:
         input_path = sys.argv[1]
     else:
-        input_path = input("Enter the local directory path: ")
+        input_path = input("Enter the file or directory path: ")
 
-    print(f"\nProcessing directory: {input_path}\n")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(script_dir, 'output')
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     date = datetime.now().strftime("%Y%m%d")
     time_str = datetime.now().strftime("%H%M%S")
     path_parts = os.path.normpath(input_path).split(os.sep)
-    last_two_dirs = '-'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-    
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(script_dir, 'output')
-    
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    output_file = os.path.join(output_dir, f"{date}-uncompresseddir_{last_two_dirs}_{time_str}.txt")
-    processed_file = os.path.join(output_dir, f"{date}-compresseddir-{last_two_dirs}_{time_str}.txt")
+    last_part = path_parts[-1]
 
     try:
-        final_output, uncompressed_token_count = process_local_directory(input_path)
+        if os.path.isfile(input_path):
+            print(f"\nProcessing file: {input_path}\n")
+            output_prefix = "file"
+            final_output, uncompressed_token_count = process_single_file(input_path)
+        else:
+            print(f"\nProcessing directory: {input_path}\n")
+            output_prefix = "dir"
+            last_part = '-'.join(path_parts[-2:]) if len(path_parts) > 1 else last_part
+            final_output, uncompressed_token_count = process_local_directory(input_path)
+
+        output_file = os.path.join(output_dir, f"{date}-uncompressed{output_prefix}_{last_part}_{time_str}.txt")
+        processed_file = os.path.join(output_dir, f"{date}-compressed{output_prefix}-{last_part}_{time_str}.txt")
 
         with open(output_file, "w", encoding="utf-8") as file:
             file.write(final_output)
